@@ -6809,6 +6809,12 @@ namespace bgfx { namespace d3d12
 					}
 				}
 
+				// The state reset on D3D12 is skipped because draw.m_streamMask is set to 0 when the current draw.m_scissor is not set ( equal to UINT16_MAX )
+				// Because of this we need to reset the internsl state, otherwise the next run will inherit the last set state and because of this may result being not different
+				// So the next draw call, at the beginning of the frame will think the scissor has already been set while this is not true.
+				// Solution: detect this particular case and manually reset the currentState scissor.
+				if (draw.m_scissor == UINT16_MAX) currentState.m_scissor = draw.m_scissor;
+
 				if (0 != draw.m_streamMask)
 				{
 					const uint64_t newFlags = draw.m_stateFlags;
