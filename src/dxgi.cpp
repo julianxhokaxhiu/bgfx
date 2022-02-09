@@ -388,6 +388,12 @@ namespace bgfx
 								BX_TRACE("\t\t          HDR support: %s", DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 == desc.ColorSpace ? "true" : "false");
 
 								hdr10 |= DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 == desc.ColorSpace;
+
+								// Store output device information for later
+								_caps.outDeviceInfo[jj].isHDR10 = hdr10;
+								_caps.outDeviceInfo[jj].minLuminance = desc.MinLuminance;
+								_caps.outDeviceInfo[jj].maxLuminance = desc.MaxLuminance;
+								_caps.outDeviceInfo[jj].maxFullFrameLuminance = desc.MaxFullFrameLuminance;
 							}
 
 							// BK - warn only because RenderDoc might be present.

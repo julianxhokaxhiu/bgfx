@@ -543,6 +543,16 @@ namespace bgfx
 			uint32_t minUniformBufferSize;    //!< Mimimum uniform buffer size.
 		};
 
+		// Output Device Metadata
+		struct OutputDeviceInfo {
+			bool isHDR10;									//!< True when the output supports the HDR10 color space
+			float minLuminance;           //!< The minimum luminance, in nits
+			float maxLuminance;           //!< The maximum luminance, in nits. This value is likely only valid for a small area of the panel
+			float maxFullFrameLuminance;  //!< The maximum luminance, in nits. This value is valid for a color that fills the entire area of the panel
+		};
+
+		OutputDeviceInfo outDeviceInfo[10]; //!< Renderer Output device info
+
 		RendererType::Enum rendererType;        //!< Renderer backend type. See: `bgfx::RendererType`
 		uint64_t supported;                     //!< Supported functionality.
 		                                        ///    @attention See `BGFX_CAPS_*` flags at https://bkaradzic.github.io/bgfx/bgfx.html#available-caps
