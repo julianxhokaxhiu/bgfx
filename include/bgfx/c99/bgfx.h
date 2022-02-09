@@ -580,6 +580,15 @@ typedef struct bgfx_caps_limits_s
 
 } bgfx_caps_limits_t;
 
+// Output Device Metadata
+typedef struct bgfx_output_device_info_s
+{
+    bool isHDR10;				  /** True when the output supports the HDR10 color space                                                     */
+    float minLuminance;           /** The minimum luminance, in nits                                                                          */
+    float maxLuminance;           /** The maximum luminance, in nits. This value is likely only valid for a small area of the panel           */
+    float maxFullFrameLuminance;  /** The maximum luminance, in nits. This value is valid for a color that fills the entire area of the panel */
+} bgfx_output_device_info_s_t;
+
 /**
  * Renderer capabilities.
  *
@@ -587,20 +596,21 @@ typedef struct bgfx_caps_limits_s
 typedef struct bgfx_caps_s
 {
     bgfx_renderer_type_t rendererType;       /** Renderer backend type. See: `bgfx::RendererType` */
-    
+
     /**
      * Supported functionality.
      *   @attention See `BGFX_CAPS_*` flags at https://bkaradzic.github.io/bgfx/bgfx.html#available-caps
      */
-    uint64_t             supported;
-    uint16_t             vendorId;           /** Selected GPU vendor PCI id.              */
-    uint16_t             deviceId;           /** Selected GPU device id.                  */
-    bool                 homogeneousDepth;   /** True when NDC depth is in [-1, 1] range, otherwise its [0, 1]. */
-    bool                 originBottomLeft;   /** True when NDC origin is at bottom left.  */
-    uint8_t              numGPUs;            /** Number of enumerated GPUs.               */
-    bgfx_caps_gpu_t      gpu[4];             /** Enumerated GPUs.                         */
-    bgfx_caps_limits_t   limits;             /** Renderer runtime limits.                 */
-    
+    uint64_t                    supported;
+    uint16_t                    vendorId;           /** Selected GPU vendor PCI id.              */
+    uint16_t                    deviceId;           /** Selected GPU device id.                  */
+    bool                        homogeneousDepth;   /** True when NDC depth is in [-1, 1] range, otherwise its [0, 1]. */
+    bool                        originBottomLeft;   /** True when NDC origin is at bottom left.  */
+    uint8_t                     numGPUs;            /** Number of enumerated GPUs.               */
+    bgfx_caps_gpu_t             gpu[4];             /** Enumerated GPUs.                         */
+    bgfx_caps_limits_t          limits;             /** Renderer runtime limits.                 */
+    bgfx_output_device_info_s_t outDeviceInfo[10];  /** Renderer Output device info          */
+
     /**
      * Supported texture format capabilities flags:
      *   - `BGFX_CAPS_FORMAT_TEXTURE_NONE` - Texture format is not supported.
