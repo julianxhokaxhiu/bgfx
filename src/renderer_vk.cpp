@@ -365,6 +365,9 @@ VK_IMPORT_DEVICE
 			EXT_shader_viewport_index_layer,
 			KHR_draw_indirect_count,
 			KHR_get_physical_device_properties2,
+			EXT_hdr_metadata,
+			EXT_swapchain_colorspace,
+			KHR_get_surface_capabilities_2,
 
 			Count
 		};
@@ -381,15 +384,18 @@ VK_IMPORT_DEVICE
 	//
 	static Extension s_extension[] =
 	{
-		{ "VK_EXT_conservative_rasterization",      1, false, false, true,                                                          Layer::Count },
-		{ "VK_EXT_custom_border_color",             1, false, false, true,                                                          Layer::Count },
-		{ "VK_EXT_debug_report",                    1, false, false, false,                                                         Layer::Count },
-		{ "VK_EXT_debug_utils",                     1, false, false, BGFX_CONFIG_DEBUG_OBJECT_NAME || BGFX_CONFIG_DEBUG_ANNOTATION, Layer::Count },
-		{ "VK_EXT_line_rasterization",              1, false, false, true,                                                          Layer::Count },
-		{ "VK_EXT_memory_budget",                   1, false, false, true,                                                          Layer::Count },
-		{ "VK_EXT_shader_viewport_index_layer",     1, false, false, true,                                                          Layer::Count },
-		{ "VK_KHR_draw_indirect_count",             1, false, false, true,                                                          Layer::Count },
-		{ "VK_KHR_get_physical_device_properties2", 1, false, false, true,                                                          Layer::Count },
+		{ VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,       1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME,              1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME,                     1, false, false, false                                                        , Layer::Count },
+		{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME,                      1, false, false, BGFX_CONFIG_DEBUG_OBJECT_NAME || BGFX_CONFIG_DEBUG_ANNOTATION, Layer::Count },
+		{ VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME,               1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,                    1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,      1, false, false, true                                                         , Layer::Count },
+		{ VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,              1, false, false, true                                                         , Layer::Count },
+		{ VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, 1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_HDR_METADATA_EXTENSION_NAME,                     1, false, false, true                                                         , Layer::Count },
+		{ VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,            1, false, false, true                                                         , Layer::Count },
+		{ VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,       1, false, false, true                                                         , Layer::Count },
 	};
 	BX_STATIC_ASSERT(Extension::Count == BX_COUNTOF(s_extension) );
 
@@ -6865,18 +6871,18 @@ VK_DESTROY
 					}
 				}
 
-				VkSurfaceCapabilitiesKHR surfaceCapabilities;
-				VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &surfaceCapabilities) );
+				VkSurfaceCapabilities2KHR surfaceCapabilities;
+				VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, &m_surface, &surfaceCapabilities));
 
 				const uint32_t width = bx::clamp<uint32_t>(
 					  m_resolution.width
-					, surfaceCapabilities.minImageExtent.width
-					, surfaceCapabilities.maxImageExtent.width
+					, surfaceCapabilities.surfaceCapabilities.minImageExtent.width
+					, surfaceCapabilities.surfaceCapabilities.maxImageExtent.width
 					);
 				const uint32_t height = bx::clamp<uint32_t>(
 					  m_resolution.height
-					, surfaceCapabilities.minImageExtent.height
-					, surfaceCapabilities.maxImageExtent.height
+					, surfaceCapabilities.surfaceCapabilities.minImageExtent.height
+					, surfaceCapabilities.surfaceCapabilities.maxImageExtent.height
 					);
 
 				// swapchain can't have size 0
@@ -6915,7 +6921,11 @@ VK_DESTROY
 				sci.flags     = 0;
 				sci.hinstance = (HINSTANCE)GetModuleHandle(NULL);
 				sci.hwnd      = (HWND)m_nwh;
-				result = vkCreateWin32SurfaceKHR(instance, &sci, allocatorCb, &m_surface);
+
+				m_surface.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
+				m_surface.pNext = nullptr;
+
+				result = vkCreateWin32SurfaceKHR(instance, &sci, allocatorCb, &m_surface.surface);
 			}
 		}
 #elif BX_PLATFORM_ANDROID
@@ -6927,7 +6937,7 @@ VK_DESTROY
 				sci.pNext = NULL;
 				sci.flags = 0;
 				sci.window = (ANativeWindow*)m_nwh;
-				result = vkCreateAndroidSurfaceKHR(instance, &sci, allocatorCb, &m_surface);
+				result = vkCreateAndroidSurfaceKHR(instance, &sci, allocatorCb, &m_surface.surface);
 			}
 		}
 #elif BX_PLATFORM_LINUX
@@ -7019,7 +7029,7 @@ VK_DESTROY
 				sci.pNext = NULL;
 				sci.flags = 0;
 				sci.pView = (__bridge void*)layer;
-				result = vkCreateMacOSSurfaceMVK(instance, &sci, allocatorCb, &m_surface);
+				result = vkCreateMacOSSurfaceMVK(instance, &sci, allocatorCb, &m_surface.surface);
 			}
 		}
 #else
@@ -7038,7 +7048,7 @@ VK_DESTROY
 		const uint32_t queueFamily = s_renderVK->m_globalQueueFamily;
 
 		VkBool32 surfaceSupported;
-		result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamily, m_surface, &surfaceSupported);
+		result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamily, m_surface.surface, &surfaceSupported);
 
 		if (VK_SUCCESS != result
 		||  !surfaceSupported)
@@ -7064,19 +7074,29 @@ VK_DESTROY
 		const VkDevice device = s_renderVK->m_device;
 		const VkAllocationCallbacks* allocatorCb = s_renderVK->m_allocatorCb;
 
-		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &surfaceCapabilities);
+		VkHdrMetadataEXT s_HdrMetadataEXT;
+		s_HdrMetadataEXT.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT;
+		s_HdrMetadataEXT.pNext = nullptr;
+
+		VkDisplayNativeHdrSurfaceCapabilitiesAMD s_DisplayNativeHdrSurfaceCapabilitiesAMD;
+		s_DisplayNativeHdrSurfaceCapabilitiesAMD.sType = VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD;
+		s_DisplayNativeHdrSurfaceCapabilitiesAMD.pNext = &s_HdrMetadataEXT;
+
+		VkSurfaceCapabilities2KHR surfaceCapabilities;
+		surfaceCapabilities.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
+		surfaceCapabilities.pNext = &s_DisplayNativeHdrSurfaceCapabilitiesAMD;
+		result = vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, &m_surface, &surfaceCapabilities);
 
 		if (VK_SUCCESS != result)
 		{
-			BX_TRACE("Create swapchain error: vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed %d: %s.", result, getName(result) );
+			BX_TRACE("Create swapchain error: vkGetPhysicalDeviceSurfaceCapabilities2KHR failed %d: %s.", result, getName(result) );
 			return result;
 		}
 
-		const uint32_t minSwapBufferCount = bx::max<uint32_t>(surfaceCapabilities.minImageCount, 2);
-		const uint32_t maxSwapBufferCount = surfaceCapabilities.maxImageCount == 0
+		const uint32_t minSwapBufferCount = bx::max<uint32_t>(surfaceCapabilities.surfaceCapabilities.minImageCount, 2);
+		const uint32_t maxSwapBufferCount = surfaceCapabilities.surfaceCapabilities.maxImageCount == 0
 			? kMaxBackBuffers
-			: bx::min<uint32_t>(surfaceCapabilities.maxImageCount, kMaxBackBuffers)
+			: bx::min<uint32_t>(surfaceCapabilities.surfaceCapabilities.maxImageCount, kMaxBackBuffers)
 			;
 
 		if (minSwapBufferCount > maxSwapBufferCount)
@@ -7094,7 +7114,31 @@ VK_DESTROY
 		const VkColorSpaceKHR surfaceColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
 		const bool srgb = !!(m_resolution.reset & BGFX_RESET_SRGB_BACKBUFFER);
-		m_colorFormat = findSurfaceFormat(m_resolution.format, surfaceColorSpace, srgb);
+
+		m_colorFormat = findSurfaceFormat(bgfx::TextureFormat::RGB10A2, VK_COLOR_SPACE_HDR10_ST2084_EXT, false);
+		const bool hdr10 = m_colorFormat != TextureFormat::Count;
+		
+		if (hdr10)
+		{
+			BX_TRACE("\t\t           RedPrimary: %f, %f", s_HdrMetadataEXT.displayPrimaryRed.x, s_HdrMetadataEXT.displayPrimaryRed.y);
+			BX_TRACE("\t\t         GreenPrimary: %f, %f", s_HdrMetadataEXT.displayPrimaryGreen.x, s_HdrMetadataEXT.displayPrimaryGreen.y);
+			BX_TRACE("\t\t          BluePrimary: %f, %f", s_HdrMetadataEXT.displayPrimaryBlue.x, s_HdrMetadataEXT.displayPrimaryBlue.y);
+			BX_TRACE("\t\t           WhitePoint: %f, %f", s_HdrMetadataEXT.whitePoint.x, s_HdrMetadataEXT.whitePoint.y);
+			BX_TRACE("\t\t         MinLuminance: %f", s_HdrMetadataEXT.minLuminance);
+			BX_TRACE("\t\t         MaxLuminance: %f", s_HdrMetadataEXT.maxLuminance);
+			BX_TRACE("\t\tMaxFullFrameLuminance: %f", s_HdrMetadataEXT.maxFrameAverageLightLevel);
+			BX_TRACE("\t\t          HDR support: %s", hdr10 ? "true" : "false");
+
+			g_caps.supported |= BGFX_CAPS_HDR10;
+
+			// Store output device information for later
+			g_caps.outDeviceInfo[0].isHDR10 = hdr10;
+			g_caps.outDeviceInfo[0].minLuminance = s_HdrMetadataEXT.minLuminance;
+			g_caps.outDeviceInfo[0].maxLuminance = s_HdrMetadataEXT.maxLuminance;
+			g_caps.outDeviceInfo[0].maxFullFrameLuminance = s_HdrMetadataEXT.maxFrameAverageLightLevel;
+		}
+		else
+			m_colorFormat = findSurfaceFormat(m_resolution.format, surfaceColorSpace, srgb);
 
 		if (TextureFormat::Count == m_colorFormat)
 		{
@@ -7109,26 +7153,26 @@ VK_DESTROY
 
 		const uint32_t width = bx::clamp<uint32_t>(
 			  m_resolution.width
-			, surfaceCapabilities.minImageExtent.width
-			, surfaceCapabilities.maxImageExtent.width
+			, surfaceCapabilities.surfaceCapabilities.minImageExtent.width
+			, surfaceCapabilities.surfaceCapabilities.maxImageExtent.width
 			);
 		const uint32_t height = bx::clamp<uint32_t>(
 			  m_resolution.height
-			, surfaceCapabilities.minImageExtent.height
-			, surfaceCapabilities.maxImageExtent.height
+			, surfaceCapabilities.surfaceCapabilities.minImageExtent.height
+			, surfaceCapabilities.surfaceCapabilities.maxImageExtent.height
 			);
 
 		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-		if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
+		if (surfaceCapabilities.surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
 		{
 			compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 		}
-		else if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
+		else if (surfaceCapabilities.surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
 		{
 			compositeAlpha = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
 		}
-		else if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)
+		else if (surfaceCapabilities.surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)
 		{
 			compositeAlpha = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
 		}
@@ -7138,7 +7182,7 @@ VK_DESTROY
 			| VK_IMAGE_USAGE_TRANSFER_SRC_BIT
 			| VK_IMAGE_USAGE_TRANSFER_DST_BIT
 			;
-		const VkImageUsageFlags imageUsage = surfaceCapabilities.supportedUsageFlags & imageUsageMask;
+		const VkImageUsageFlags imageUsage = surfaceCapabilities.surfaceCapabilities.supportedUsageFlags & imageUsageMask;
 
 		m_supportsReadback      = 0 != (imageUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 		m_supportsManualResolve = 0 != (imageUsage & VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -7151,7 +7195,7 @@ VK_DESTROY
 			return VK_ERROR_INITIALIZATION_FAILED;
 		}
 
-		m_sci.surface            = m_surface;
+		m_sci.surface            = m_surface.surface;
 		m_sci.minImageCount      = swapBufferCount;
 		m_sci.imageFormat        = surfaceFormat;
 		m_sci.imageColorSpace    = surfaceColorSpace;
@@ -7447,7 +7491,7 @@ VK_DESTROY
 		uint32_t numPresentModes;
 		result = vkGetPhysicalDeviceSurfacePresentModesKHR(
 			  physicalDevice
-			, m_surface
+			, m_surface.surface
 			, &numPresentModes
 			, NULL
 			);
@@ -7462,7 +7506,7 @@ VK_DESTROY
 		numPresentModes = bx::min<uint32_t>(numPresentModes, BX_COUNTOF(presentModes) );
 		result = vkGetPhysicalDeviceSurfacePresentModesKHR(
 			  physicalDevice
-			, m_surface
+			, m_surface.surface
 			, &numPresentModes
 			, presentModes
 			);
@@ -7509,7 +7553,7 @@ VK_DESTROY
 		const VkPhysicalDevice physicalDevice = s_renderVK->m_physicalDevice;
 
 		uint32_t numSurfaceFormats;
-		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &numSurfaceFormats, NULL);
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface.surface, &numSurfaceFormats, NULL);
 
 		if (VK_SUCCESS != result)
 		{
@@ -7518,7 +7562,7 @@ VK_DESTROY
 		}
 
 		VkSurfaceFormatKHR* surfaceFormats = (VkSurfaceFormatKHR*)bx::alloc(g_allocator, numSurfaceFormats * sizeof(VkSurfaceFormatKHR) );
-		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &numSurfaceFormats, surfaceFormats);
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface.surface, &numSurfaceFormats, surfaceFormats);
 
 		if (VK_SUCCESS != result)
 		{

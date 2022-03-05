@@ -116,11 +116,11 @@
 			VK_IMPORT_INSTANCE_FUNC(false, vkCreateDevice);                            \
 			VK_IMPORT_INSTANCE_FUNC(false, vkDestroyDevice);                           \
 			/* VK_KHR_surface */                                                       \
-			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceSurfaceCapabilitiesKHR); \
-			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceSurfaceFormatsKHR);      \
-			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceSurfacePresentModesKHR); \
-			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceSurfaceSupportKHR);      \
-			VK_IMPORT_INSTANCE_FUNC(true,  vkDestroySurfaceKHR);                       \
+			VK_IMPORT_INSTANCE_FUNC(true, vkGetPhysicalDeviceSurfaceCapabilities2KHR); \
+			VK_IMPORT_INSTANCE_FUNC(true, vkGetPhysicalDeviceSurfaceFormatsKHR);       \
+			VK_IMPORT_INSTANCE_FUNC(true, vkGetPhysicalDeviceSurfacePresentModesKHR);  \
+			VK_IMPORT_INSTANCE_FUNC(true, vkGetPhysicalDeviceSurfaceSupportKHR);       \
+			VK_IMPORT_INSTANCE_FUNC(true, vkDestroySurfaceKHR);                        \
 			/* VK_KHR_get_physical_device_properties2 */                               \
 			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceFeatures2KHR);           \
 			VK_IMPORT_INSTANCE_FUNC(true,  vkGetPhysicalDeviceMemoryProperties2KHR);   \
@@ -761,7 +761,7 @@ VK_DESTROY_FUNC(DescriptorSet);
 		TextureFormat::Enum m_colorFormat;
 		TextureFormat::Enum m_depthFormat;
 
-		VkSurfaceKHR   m_surface;
+		VkPhysicalDeviceSurfaceInfo2KHR m_surface;
 		VkSwapchainKHR m_swapChain;
 		uint32_t       m_numSwapChainImages;
 		VkImageLayout  m_backBufferColorImageLayout[kMaxBackBuffers];
