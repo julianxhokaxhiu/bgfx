@@ -4107,7 +4107,8 @@ namespace bgfx
 			if (dib.m_size < _mem->size
 			&&  0 != (dib.m_flags & BGFX_BUFFER_ALLOW_RESIZE) )
 			{
-				destroy(dib);
+				m_dynIndexBufferAllocator.free(uint64_t(dib.m_handle.idx)<<32 | dib.m_offset);
+				m_dynIndexBufferAllocator.compact();
 
 				const uint64_t ptr = (0 != (dib.m_flags & BGFX_BUFFER_COMPUTE_READ) )
 					? allocIndexBuffer(_mem->size, dib.m_flags)
@@ -4145,16 +4146,18 @@ namespace bgfx
 			m_freeDynamicIndexBufferHandle[m_numFreeDynamicIndexBufferHandles++] = _handle;
 		}
 
-		void destroy(const DynamicIndexBuffer& _dib)
+		void destroyDynamicIndexBufferInternal(DynamicIndexBufferHandle _handle)
 		{
-			if (0 != (_dib.m_flags & BGFX_BUFFER_COMPUTE_READ_WRITE) )
+			DynamicIndexBuffer& _dib = m_dynamicIndexBuffers[_handle.idx];
+
+			if (0 != (_dib.m_flags & BGFX_BUFFER_COMPUTE_READ_WRITE))
 			{
 				destroyIndexBuffer(_dib.m_handle);
 			}
 			else
 			{
 				m_dynIndexBufferAllocator.free(uint64_t(_dib.m_handle.idx) << 32 | _dib.m_offset);
-				if (m_dynIndexBufferAllocator.compact() )
+				if (m_dynIndexBufferAllocator.compact())
 				{
 					for (uint64_t ptr = m_dynIndexBufferAllocator.remove(); 0 != ptr; ptr = m_dynIndexBufferAllocator.remove() )
 					{
@@ -4163,13 +4166,7 @@ namespace bgfx
 					}
 				}
 			}
-		}
 
-		void destroyDynamicIndexBufferInternal(DynamicIndexBufferHandle _handle)
-		{
-			DynamicIndexBuffer& dib = m_dynamicIndexBuffers[_handle.idx];
-			destroy(dib);
-			dib.reset();
 			m_dynamicIndexBufferHandle.free(_handle.idx);
 		}
 
@@ -4179,7 +4176,7 @@ namespace bgfx
 			if (ptr == NonLocalAllocator::kInvalidBlock)
 			{
 				VertexBufferHandle vertexBufferHandle = { m_vertexBufferHandle.alloc() };
-				if (!isValid(vertexBufferHandle) )
+				if (!isValid(vertexBufferHandle))
 				{
 					BX_TRACE("Failed to allocate dynamic vertex buffer handle.");
 					return NonLocalAllocator::kInvalidBlock;
@@ -4304,7 +4301,8 @@ namespace bgfx
 			if (dvb.m_size < _mem->size
 			&&  0 != (dvb.m_flags & BGFX_BUFFER_ALLOW_RESIZE) )
 			{
-				destroy(dvb);
+				m_dynVertexBufferAllocator.free(uint64_t(dvb.m_handle.idx)<<32 | dvb.m_offset);
+				m_dynVertexBufferAllocator.compact();
 
 				const uint32_t size = bx::strideAlign<16>(_mem->size, dvb.m_stride)+dvb.m_stride;
 
@@ -4346,8 +4344,20 @@ namespace bgfx
 			m_freeDynamicVertexBufferHandle[m_numFreeDynamicVertexBufferHandles++] = _handle;
 		}
 
-		void destroy(const DynamicVertexBuffer& _dvb)
+		void destroyDynamicVertexBufferInternal(DynamicVertexBufferHandle _handle)
 		{
+			VertexLayoutHandle layoutHandle = m_vertexLayoutRef.release(_handle);
+			BGFX_CHECK_HANDLE_INVALID_OK("destroyDynamicVertexBufferInternal", m_layoutHandle, layoutHandle);
+
+			if (isValid(layoutHandle) )
+			{
+				CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::DestroyVertexLayout);
+				cmdbuf.write(layoutHandle);
+				m_render->free(layoutHandle);
+			}
+
+			DynamicVertexBuffer& _dvb = m_dynamicVertexBuffers[_handle.idx];
+
 			if (0 != (_dvb.m_flags & BGFX_BUFFER_COMPUTE_READ_WRITE) )
 			{
 				destroyVertexBuffer(_dvb.m_handle);
@@ -4364,23 +4374,7 @@ namespace bgfx
 					}
 				}
 			}
-		}
 
-		void destroyDynamicVertexBufferInternal(DynamicVertexBufferHandle _handle)
-		{
-			VertexLayoutHandle layoutHandle = m_vertexLayoutRef.release(_handle);
-			BGFX_CHECK_HANDLE_INVALID_OK("destroyDynamicVertexBufferInternal", m_layoutHandle, layoutHandle);
-
-			if (isValid(layoutHandle) )
-			{
-				CommandBuffer& cmdbuf = getCommandBuffer(CommandBuffer::DestroyVertexLayout);
-				cmdbuf.write(layoutHandle);
-				m_render->free(layoutHandle);
-			}
-
-			DynamicVertexBuffer& dvb = m_dynamicVertexBuffers[_handle.idx];
-			destroy(dvb);
-			dvb.reset();
 			m_dynamicVertexBufferHandle.free(_handle.idx);
 		}
 
