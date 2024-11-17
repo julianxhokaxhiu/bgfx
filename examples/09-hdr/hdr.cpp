@@ -159,6 +159,11 @@ public:
 		init.resolution.width  = m_width;
 		init.resolution.height = m_height;
 		init.resolution.reset  = m_reset;
+		if (bgfx::getCaps()->supported & BGFX_CAPS_HDR10)
+		{
+			init.resolution.reset |= BGFX_RESET_HDR10;
+			init.resolution.format = bgfx::TextureFormat::RGB10A2;
+		}
 		bgfx::init(init);
 
 		// Enable m_debug text.
