@@ -6814,6 +6814,10 @@ retry:
 					s_renderVK->recycleMemory(stagingBuffer.m_deviceMem);
 				}
 			}
+			else if (0 == _external)
+			{
+				setState(_commandBuffer, m_sampledLayout);
+			}
 
 			bx::free(g_allocator, bufferCopyInfo);
 
